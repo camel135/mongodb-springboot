@@ -72,6 +72,9 @@ public class MdbSpringBootApplication implements CommandLineRunner {
         System.out.println("\n------------FINAL COUNT OF GROCERY ITEMS-------------------------\n");
         findCountOfGroceryItems();
 
+        System.out.println("\n-----------AGREGACIONES (PASO 4)---------------------------------\n");
+        customRepo.groupItemsByCategoryAndSumQuantity();
+
         System.out.println("\n-------------------THANK YOU---------------------------");
     }
 
@@ -160,4 +163,6 @@ public class MdbSpringBootApplication implements CommandLineRunner {
                 item.getName(), item.getItemQuantity(),
                 (item.getCategory() != null ? item.getCategory().getName() : "N/A"));
     }
+
+
 }
