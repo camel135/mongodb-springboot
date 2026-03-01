@@ -1,6 +1,7 @@
 package com.example.mdbspringboot.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document("GroceryItem")
@@ -13,9 +14,11 @@ public class GroceryItem {
 
 		private String name;
 		private int quantity;
-		private String category;
-		
-		public GroceryItem(String id, String name, int quantity, String category) {
+
+		@DBRef
+		private Category category;
+
+		public GroceryItem(String id, String name, int quantity, Category category) {
 			super();
 			this.id = id;
 			this.name = name;
@@ -47,11 +50,11 @@ public class GroceryItem {
 			this.quantity = quantity;
 		}
 
-				public String getCategory() {
+		public Category getCategory() {
 			return category;
 		}
 
-		public void setCategory(String category) {
+		public void setCategory(Category category) {
 			this.category = category;
 		}
 
