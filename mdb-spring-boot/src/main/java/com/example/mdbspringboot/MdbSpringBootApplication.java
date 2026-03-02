@@ -18,6 +18,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 import com.example.mdbspringboot.model.GroceryItem;
 import com.example.mdbspringboot.repository.CustomItemRepository;
 import com.example.mdbspringboot.repository.ItemRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootApplication
 @EnableMongoRepositories
@@ -140,6 +141,7 @@ public class MdbSpringBootApplication implements CommandLineRunner {
         System.out.println("Number of documents in the collection = " + count);
     }
 
+    @Transactional
     public void updateCategoryName(String oldCategoryName) {
         System.out.println("Updating items from category '" + oldCategoryName + "' to 'munchies'");
 

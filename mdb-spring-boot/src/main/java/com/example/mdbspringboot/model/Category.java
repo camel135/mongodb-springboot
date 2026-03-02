@@ -3,13 +3,18 @@ package com.example.mdbspringboot.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import javax.validation.constraints.NotBlank;
+
 @Document(collection = "categories")
 public class Category {
     @Id
     private String id;
-    private String name;
-    private String description;
 
+    @NotBlank(message = "El nombre de la categoría es obligatorio")
+    private String name;
+
+    @NotBlank(message = "La descripción es obligatoria")
+    private String description;
     // Constructores, Getters y Setters
     public Category(String name, String description) {
         this.name = name;
