@@ -40,9 +40,9 @@ public class MdbSpringBootApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // Limpieza
+        // 1. Limpieza de datos previos
         groceryItemRepo.deleteAll();
-        categoryRepo.deleteAll(); // También borramos categorías para empezar de cero
+        categoryRepo.deleteAll();
 
         System.out.println("-------------CREATE GROCERY ITEMS-------------------------------\n");
         createGroceryItems();
@@ -50,14 +50,14 @@ public class MdbSpringBootApplication implements CommandLineRunner {
         System.out.println("\n----------------SHOW ALL GROCERY ITEMS---------------------------\n");
         showAllGroceryItems();
 
-        // PASO 3: Probamos la paginación
-        System.out.println("\n-----------PAGINACIÓN Y ORDENACIÓN---------------------------------\n");
+        System.out.println("\n-----------PAGINACIÓN Y ORDENACIÓN (PASO 3)----------------------\n");
         showAllGroceryItemsWithPagination();
 
         System.out.println("\n--------------GET ITEM BY NAME-----------------------------------\n");
         getGroceryItemByName("Whole Wheat Biscuit");
 
         System.out.println("\n-----------GET ITEMS BY CATEGORY---------------------------------\n");
+        // Nota: Con @DBRef, el filtrado por nombre se hace mejor en memoria o con Aggregation
         getItemsByCategory("millets");
 
         System.out.println("\n-----------UPDATE CATEGORY NAME OF ALL GROCERY ITEMS----------------\n");
@@ -82,15 +82,19 @@ public class MdbSpringBootApplication implements CommandLineRunner {
 
     void createGroceryItems() {
         System.out.println("Data creation started...");
+
+        // Guardamos categorías primero para que tengan ID
         Category snacks = categoryRepo.save(new Category("snacks", "Aperitivos variados"));
         Category millets = categoryRepo.save(new Category("millets", "Cereales y granos"));
         Category spices = categoryRepo.save(new Category("spices", "Especias del mundo"));
 
-        groceryItemRepo.save(new GroceryItem("Whole Wheat Biscuit", "Whole Wheat Biscuit", 5, snacks));
-        groceryItemRepo.save(new GroceryItem("XYZ Kodo Millet", "XYZ Kodo Millet healthy", 2, millets));
-        groceryItemRepo.save(new GroceryItem("Dried Whole Red Chilli", "Dried Whole Red Chilli", 2, spices));
-        groceryItemRepo.save(new GroceryItem("Healthy Pearl Millet", "Healthy Pearl Millet", 1, millets));
-        groceryItemRepo.save(new GroceryItem("Bonny Cheese Crackers", "Bonny Cheese Crackers Plain", 6, snacks));
+        // Guardamos los items usando el constructor (ID, Nombre, Cantidad, Categoría)
+        groceryItemRepo.save(new GroceryItem("WWB", "Whole Wheat Biscuit", 5, snacks));
+        groceryItemRepo.save(new GroceryItem("KM", "XYZ Kodo Millet", 2, millets));
+        groceryItemRepo.save(new GroceryItem("DWR", "Dried Whole Red Chilli", 2, spices));
+        groceryItemRepo.save(new GroceryItem("HPM", "Healthy Pearl Millet", 1, millets));
+        groceryItemRepo.save(new GroceryItem("BCC", "Bonny Cheese Crackers Plain", 6, snacks));
+
         System.out.println("Data creation complete...");
     }
 
@@ -100,6 +104,7 @@ public class MdbSpringBootApplication implements CommandLineRunner {
     }
 
     public void showAllGroceryItemsWithPagination() {
+        System.out.println("--- MOSTRANDO PAGINADO (Página 0, Tamaño 2, Orden ASC) ---");
         Pageable pageable = PageRequest.of(0, 2, Sort.by("name").ascending());
         Page<GroceryItem> page = groceryItemRepo.findAll(pageable);
 
@@ -109,18 +114,25 @@ public class MdbSpringBootApplication implements CommandLineRunner {
         page.getContent().forEach(item ->
                 System.out.println("Item: " + item.getName() + " | Cantidad: " + item.getItemQuantity())
         );
-    } // <--- AQUÍ FALTABA ESTA LLAVE
+    }
 
     public void getGroceryItemByName(String name) {
         System.out.println("Getting item by name: " + name);
         GroceryItem item = groceryItemRepo.findItemByName(name);
-        if(item != null) System.out.println(getItemDetails(item));
+        if(item != null) {
+            System.out.println(getItemDetails(item));
+        } else {
+            System.out.println("Item no encontrado.");
+        }
     }
 
-    public void getItemsByCategory(String category) {
-        System.out.println("Getting items for the category " + category);
-        List<GroceryItem> list = groceryItemRepo.findAll(category);
-        list.forEach(item -> System.out.println("Name: " + item.getName() + ", Quantity: " + item.getItemQuantity()));
+    public void getItemsByCategory(String categoryName) {
+        System.out.println("Getting items for the category: " + categoryName);
+        // Debido al uso de @DBRef, filtramos en Java para asegurar precisión si el Repository falla
+        List<GroceryItem> allItems = groceryItemRepo.findAll();
+        allItems.stream()
+                .filter(item -> item.getCategory() != null && categoryName.equals(item.getCategory().getName()))
+                .forEach(item -> System.out.println("Name: " + item.getName() + ", Quantity: " + item.getItemQuantity()));
     }
 
     public void findCountOfGroceryItems() {
@@ -129,7 +141,9 @@ public class MdbSpringBootApplication implements CommandLineRunner {
     }
 
     public void updateCategoryName(String oldCategoryName) {
-        System.out.println("Updating items with category: " + oldCategoryName);
+        System.out.println("Updating items from category '" + oldCategoryName + "' to 'munchies'");
+
+        // Creamos la nueva categoría
         Category newCat = categoryRepo.save(new Category("munchies", "Aperitivos crujientes"));
 
         List<GroceryItem> allItems = groceryItemRepo.findAll();
@@ -153,16 +167,19 @@ public class MdbSpringBootApplication implements CommandLineRunner {
         customRepo.updateItemQuantity(name, newQuantity);
     }
 
-    public void deleteGroceryItem(String id) {
-        groceryItemRepo.deleteById(id);
-        System.out.println("Item with id " + id + " deleted...");
+    public void deleteGroceryItem(String name) {
+        // En tu ejemplo se pasaba el nombre, pero deleteById usa la ID.
+        // Buscamos el item primero para obtener su ID.
+        GroceryItem item = groceryItemRepo.findItemByName(name);
+        if(item != null) {
+            groceryItemRepo.deleteById(item.getId());
+            System.out.println("Item '" + name + "' deleted.");
+        }
     }
 
     public String getItemDetails(GroceryItem item) {
+        String catName = (item.getCategory() != null) ? item.getCategory().getName() : "N/A";
         return String.format("Item Name: %s, Quantity: %d, Category: %s",
-                item.getName(), item.getItemQuantity(),
-                (item.getCategory() != null ? item.getCategory().getName() : "N/A"));
+                item.getName(), item.getItemQuantity(), catName);
     }
-
-
 }
